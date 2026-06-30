@@ -45,7 +45,7 @@ def is_block_page(html):
 
 
 # ----------------------------
-# TECH STACK DETECTOR
+# TECH STACK DETECTION
 # ----------------------------
 def detect_stack(html):
     html = html.lower()
@@ -64,7 +64,7 @@ def detect_stack(html):
 
 
 # ----------------------------
-# SECURITY CHECKS
+# SECURITY SIGNALS
 # ----------------------------
 def security_checks(html, url):
     return {
@@ -78,31 +78,61 @@ def security_checks(html, url):
 
 
 # ----------------------------
-# LLM CALL (OLLAMA CLOUD API)
+# LLM ANALYSIS (DEEP AI AGENT STYLE)
 # ----------------------------
 def analyze_with_llm(text, url, stack, security):
 
     prompt = f"""
-You are a website intelligence analyst.
+You are an expert startup analyst, product strategist, and cybersecurity researcher.
+
+Your task:
+1. Understand what the company REALLY does
+2. Infer business model and target users
+3. Extract structured intelligence
+4. Evaluate trust and risk
+5. Produce investor-grade analysis
 
 Return ONLY valid JSON:
 
 {{
-  "summary": "",
-  "what_it_does": "",
-  "products_or_services": [],
-  "target_audience": "",
-  "monetization_model": "",
-  "seo_quality": "",
-  "security_risks": [],
-  "trust_score": 0-100
+  "company_understanding": {{
+    "company_name_guess": "",
+    "core_business": "",
+    "problem_it_solves": "",
+    "how_it_works": "",
+    "industry": "",
+    "business_type": ""
+  }},
+
+  "business_analysis": {{
+    "target_audience": "",
+    "monetization_model": "",
+    "value_proposition": ""
+  }},
+
+  "technical_signals": {{
+    "detected_stack": {stack},
+    "complexity": "low/medium/high"
+  }},
+
+  "security_and_trust": {{
+    "trust_score": 0-100,
+    "risk_flags": [],
+    "reasoning": ""
+  }},
+
+  "seo_and_growth": {{
+    "seo_quality": "",
+    "growth_potential": ""
+  }}
 }}
 
 URL: {url}
-Tech Stack: {stack}
-Security: {security}
 
-CONTENT:
+Security Signals:
+{security}
+
+Website Content:
 {text[:6000]}
 """
 
@@ -134,9 +164,9 @@ CONTENT:
 # ----------------------------
 # STREAMLIT UI
 # ----------------------------
-st.set_page_config(page_title="Website Intelligence AI", layout="wide")
+st.set_page_config(page_title="AI Website Intelligence Engine", layout="wide")
 
-st.title("🌐 Website Intelligence Report Generator")
+st.title("🌐 AI Website Intelligence Engine (Investor-Grade)")
 
 url = st.text_input("Enter website URL")
 
@@ -150,44 +180,45 @@ if st.button("Analyze Website") and url:
         st.stop()
 
     if is_block_page(html):
-        st.error("🚫 Blocked by Cloudflare / bot protection")
+        st.error("🚫 Blocked by security protection")
         st.stop()
 
     with st.spinner("Analyzing structure..."):
         stack = detect_stack(html)
         security = security_checks(html, url)
 
-    with st.spinner("Running AI analysis..."):
+    with st.spinner("Running AI intelligence analysis..."):
         report = analyze_with_llm(text, url, stack, security)
 
     # ----------------------------
-    # OUTPUT
+    # OUTPUT UI
     # ----------------------------
-    st.subheader("📊 Summary")
-    st.write(report.get("summary", "N/A"))
+
+    st.subheader("🧠 Company Understanding")
+    st.json(report.get("company_understanding", {}))
+
+    st.subheader("📊 Business Analysis")
+    st.json(report.get("business_analysis", {}))
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🧠 What it does")
-        st.write(report.get("what_it_does", "N/A"))
+        st.subheader("🛠 Technical Signals")
+        st.json(report.get("technical_signals", {}))
 
-        st.subheader("🛠 Tech Stack")
+        st.subheader("📦 Tech Stack (Detected)")
         st.write(stack)
 
-        st.subheader("📦 Products / Services")
-        st.write(report.get("products_or_services", []))
-
     with col2:
-        st.subheader("🔐 Security Signals")
+        st.subheader("🔐 Security & Trust")
+        st.json(report.get("security_and_trust", {}))
+
+        st.subheader("⚠️ Security Signals (Raw)")
         st.json(security)
 
-        st.subheader("⭐ Trust Score")
-        st.metric("Score", report.get("trust_score", "N/A"))
-
-        st.subheader("⚠️ Security Risks")
-        st.write(report.get("security_risks", []))
+    st.subheader("📈 SEO & Growth")
+    st.json(report.get("seo_and_growth", {}))
 
     if "raw_output" in report:
-        st.subheader("🧾 Raw Output (Debug)")
+        st.subheader("🧾 Raw LLM Output (Debug)")
         st.text(report["raw_output"])
