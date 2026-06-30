@@ -228,6 +228,8 @@ def generate_pdf(report, url):
 
     text = build_report_text(report, url)
 
+    text = text.encode("ascii", "ignore").decode("ascii")
+
     y = 800
     for line in text.split("\n"):
         if y < 50:
