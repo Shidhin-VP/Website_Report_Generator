@@ -13,7 +13,8 @@ llm = ChatOllama(
     model='gpt-oss:120b-cloud', 
     client_kwargs={
         "headers":{
-            "Authorization":f"Bearer {os.getenv('OLLAMA_CLOUD_API')}"
+            "Authorization":f"Bearer {st.secrets['OLLAMA_CLOUD_API']}"
+            # "Authorization":f"Bearer {os.getenv('OLLAMA_CLOUD_API')}"
         }
     }
 )
