@@ -2,27 +2,15 @@ import streamlit as st
 import trafilatura
 import cloudscraper
 import json
-import os
-
-from langchain_ollama import ChatOllama
+import requests
 
 # ----------------------------
 # CONFIG
 # ----------------------------
-llm = ChatOllama(
-    model='gpt-oss:120b-cloud', 
-    base_url='https://ollama.com', 
-    client_kwargs={
-        "headers":{
-            "Authorization":f"Bearer {st.secrets['OLLAMA_CLOUD_API']}"
-            # "Authorization":f"Bearer {os.getenv('OLLAMA_CLOUD_API')}"
-        }
-    }
-)
-
+OLLAMA_API_KEY = st.secrets["OLLAMA_CLOUD_API"]
 
 # ----------------------------
-# FETCH WEBSITE (ROBUST)
+# FETCH WEBSITE
 # ----------------------------
 def fetch_url(url):
     try:
@@ -35,7 +23,6 @@ def fetch_url(url):
 
         scraper = cloudscraper.create_scraper()
         html = scraper.get(url, headers=headers, timeout=15).text
-
         text = trafilatura.extract(html)
 
         return html, text or ""
@@ -45,7 +32,7 @@ def fetch_url(url):
 
 
 # ----------------------------
-# BLOCK PAGE DETECTION
+# BLOCK PAGE CHECK
 # ----------------------------
 def is_block_page(html):
     blockers = [
@@ -91,9 +78,10 @@ def security_checks(html, url):
 
 
 # ----------------------------
-# LLM ANALYSIS (SAFE JSON)
+# LLM CALL (OLLAMA CLOUD API)
 # ----------------------------
 def analyze_with_llm(text, url, stack, security):
+
     prompt = f"""
 You are a website intelligence analyst.
 
@@ -111,7 +99,6 @@ Return ONLY valid JSON:
 }}
 
 URL: {url}
-
 Tech Stack: {stack}
 Security: {security}
 
@@ -119,15 +106,28 @@ CONTENT:
 {text[:6000]}
 """
 
-    response = llm.invoke(prompt)
-    content = response.content
+    res = requests.post(
+        "https://ollama.com/api/chat",
+        headers={
+            "Authorization": f"Bearer {OLLAMA_API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": "gpt-oss:120b",
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "stream": False
+        }
+    )
 
     try:
+        content = res.json()["message"]["content"]
         return json.loads(content)
     except:
         return {
-            "raw_output": content,
-            "error": "JSON parsing failed"
+            "raw_output": res.text,
+            "error": "Failed to parse JSON"
         }
 
 
@@ -150,7 +150,7 @@ if st.button("Analyze Website") and url:
         st.stop()
 
     if is_block_page(html):
-        st.error("🚫 Website blocked by Cloudflare / bot protection. Cannot analyze real content.")
+        st.error("🚫 Blocked by Cloudflare / bot protection")
         st.stop()
 
     with st.spinner("Analyzing structure..."):
@@ -163,9 +163,8 @@ if st.button("Analyze Website") and url:
     # ----------------------------
     # OUTPUT
     # ----------------------------
-
     st.subheader("📊 Summary")
-    st.write(report.get("summary", "No summary available"))
+    st.write(report.get("summary", "N/A"))
 
     col1, col2 = st.columns(2)
 
@@ -190,5 +189,5 @@ if st.button("Analyze Website") and url:
         st.write(report.get("security_risks", []))
 
     if "raw_output" in report:
-        st.subheader("🧾 Raw LLM Output (Debug)")
+        st.subheader("🧾 Raw Output (Debug)")
         st.text(report["raw_output"])
