@@ -28,11 +28,11 @@ def fetch_url(url):
         return html, text or ""
 
     except Exception as e:
-        return "", f"Error: {str(e)}"
+        return "", str(e)
 
 
 # ============================
-# BLOCK DETECTION
+# BLOCK CHECK
 # ============================
 def is_block_page(html):
     blockers = ["cloudflare", "checking your browser", "attention required"]
@@ -40,7 +40,7 @@ def is_block_page(html):
 
 
 # ============================
-# TECH STACK DETECTOR
+# TECH STACK
 # ============================
 def detect_stack(html):
     html = html.lower()
@@ -73,14 +73,14 @@ def security_checks(html, url):
 
 
 # ============================
-# AI ANALYSIS (CLOUD OLLAMA)
+# LLM CALL (OLLAMA CLOUD)
 # ============================
 def analyze_with_llm(text, url, stack, security):
 
     prompt = f"""
-You are an expert startup analyst and cybersecurity researcher.
+You are an expert website analyst.
 
-Analyze the website and return ONLY valid JSON:
+Return ONLY valid JSON:
 
 {{
   "company_understanding": {{
@@ -126,9 +126,7 @@ CONTENT:
         },
         json={
             "model": "gpt-oss:120b",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
             "stream": False
         }
     )
@@ -141,59 +139,65 @@ CONTENT:
 
 
 # ============================
-# PDF BUILDER (PROFESSIONAL)
+# SAFE PDF TEXT BUILDER
 # ============================
 def build_pdf_text(report, url):
+    def g(path, default=""):
+        try:
+            return str(path)
+        except:
+            return default
+
     c = report.get("company_understanding", {})
     b = report.get("business_analysis", {})
     t = report.get("technical_signals", {})
     s = report.get("security_and_trust", {})
-    g = report.get("seo_and_growth", {})
+    gdata = report.get("seo_and_growth", {})
 
     return f"""
 AI WEBSITE INTELLIGENCE REPORT
 
 URL: {url}
 
-============================
-COMPANY UNDERSTANDING
-============================
-Name: {c.get('company_name_guess')}
-Core Business: {c.get('core_business')}
-Problem: {c.get('problem_it_solves')}
-Industry: {c.get('industry')}
-Type: {c.get('business_type')}
+========================
+COMPANY
+========================
+Name: {c.get('company_name_guess', '')}
+Core: {c.get('core_business', '')}
+Problem: {c.get('problem_it_solves', '')}
+Industry: {c.get('industry', '')}
+Type: {c.get('business_type', '')}
 
-============================
-BUSINESS ANALYSIS
-============================
-Audience: {b.get('target_audience')}
-Monetization: {b.get('monetization_model')}
-Value: {b.get('value_proposition')}
+========================
+BUSINESS
+========================
+Audience: {b.get('target_audience', '')}
+Monetization: {b.get('monetization_model', '')}
+Value: {b.get('value_proposition', '')}
 
-============================
-TECH STACK
-============================
-{t.get('detected_stack')}
-Complexity: {t.get('complexity')}
+========================
+TECH
+========================
+Stack: {t.get('detected_stack', '')}
+Complexity: {t.get('complexity', '')}
 
-============================
-TRUST & SECURITY
-============================
-Trust Score: {s.get('trust_score')}
-Risks: {s.get('risk_flags')}
-Reasoning: {s.get('reasoning')}
+========================
+TRUST
+========================
+Score: {s.get('trust_score', '')}
+Risk: {s.get('risk_flags', '')}
+Reason: {s.get('reasoning', '')}
 
-============================
+========================
 GROWTH
-============================
-SEO: {g.get('seo_quality')}
-Growth: {g.get('growth_potential')}
+========================
+SEO: {gdata.get('seo_quality', '')}
+Growth: {gdata.get('growth_potential', '')}
 """
 
 
 # ============================
-# PDF GENERATOR
+# PDF GENERATOR (FIXED)
 # ============================
 def generate_pdf(report, url):
     buffer = BytesIO()
@@ -208,8 +212,13 @@ def generate_pdf(report, url):
         if y < 50:
             p.showPage()
             y = 800
-        p.drawString(x, y, line[:110])
-        y -= 15
+
+        try:
+            p.drawString(x, y, line[:110])
+        except:
+            pass
+
+        y -= 14
 
     p.save()
     buffer.seek(0)
@@ -221,7 +230,7 @@ def generate_pdf(report, url):
 # ============================
 st.set_page_config(page_title="AI Website Intelligence", layout="wide")
 
-st.title("🌐 AI Website Intelligence Engine (Pro + PDF)")
+st.title("🌐 AI Website Intelligence Engine")
 
 url = st.text_input("Enter website URL")
 
@@ -235,54 +244,45 @@ if st.button("Analyze Website") and url:
         st.stop()
 
     if is_block_page(html):
-        st.error("Blocked by protection system")
-        st.stop()
+        st.warning("⚠️ Site protected, using partial data only")
 
-    with st.spinner("Analyzing structure..."):
+    with st.spinner("Analyzing..."):
         stack = detect_stack(html)
         security = security_checks(html, url)
-
-    with st.spinner("Running AI analysis..."):
         report = analyze_with_llm(text, url, stack, security)
 
     # ============================
-    # DISPLAY RESULTS
+    # OUTPUT
     # ============================
-    st.subheader("🧠 Company Understanding")
+    st.subheader("🧠 Company")
     st.json(report.get("company_understanding", {}))
 
-    st.subheader("📊 Business Analysis")
+    st.subheader("📊 Business")
     st.json(report.get("business_analysis", {}))
 
-    col1, col2 = st.columns(2)
+    st.subheader("🛠 Tech Stack")
+    st.write(stack)
 
-    with col1:
-        st.subheader("🛠 Tech Stack")
-        st.write(stack)
-
-        st.subheader("📈 Growth")
-        st.json(report.get("seo_and_growth", {}))
-
-    with col2:
-        st.subheader("🔐 Security & Trust")
-        st.json(report.get("security_and_trust", {}))
-
-        st.subheader("⚠️ Raw Security Signals")
-        st.json(security)
+    st.subheader("🔐 Security")
+    st.json(report.get("security_and_trust", {}))
 
     # ============================
-    # PDF SECTION
+    # PDF SECTION (SAFE)
     # ============================
-    st.subheader("📄 Professional Report Preview")
+    st.subheader("📄 Report Preview")
 
     preview = build_pdf_text(report, url)
     st.text_area("Preview", preview, height=400)
 
-    pdf_file = generate_pdf(report, url)
+    try:
+        pdf_file = generate_pdf(report, url)
 
-    st.download_button(
-        label="⬇️ Download PDF Report",
-        data=pdf_file,
-        file_name="website_intelligence_report.pdf",
-        mime="application/pdf"
-    )
+        st.download_button(
+            label="⬇️ Download PDF Report",
+            data=pdf_file,
+            file_name="website_report.pdf",
+            mime="application/pdf"
+        )
+
+    except Exception as e:
+        st.error(f"PDF generation failed: {str(e)}")
