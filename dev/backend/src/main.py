@@ -11,6 +11,7 @@ from langchain_ollama import ChatOllama
 # ----------------------------
 llm = ChatOllama(
     model='gpt-oss:120b-cloud', 
+    base_url='https://ollama.com', 
     client_kwargs={
         "headers":{
             "Authorization":f"Bearer {st.secrets['OLLAMA_CLOUD_API']}"
