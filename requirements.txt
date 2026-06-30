@@ -7,3 +7,4 @@ streamlit
 trafilatura
 cloudscraper
 python-dotenv
+reportlab
