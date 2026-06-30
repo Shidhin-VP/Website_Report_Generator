@@ -1,0 +1,9 @@
+langchain
+langchain-community
+langchain-ollama
+beautifulsoup4
+lxml
+streamlit
+trafilatura
+cloudscraper
+python-dotenv
